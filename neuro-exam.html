@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Neonatal Neurological Examination – Flashcards</title>
+
+<style>
+:root{
+  --card-bg:#0B2348;
+  --text-bg:#CFE8FF;
+  --text-color:#0B0F1A;
+}
+html,body{
+  margin:0;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+}
+body{
+  background:#040B18;
+  font-family: system-ui, Tahoma, Arial;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+.app{
+  width:100%;
+  max-width:820px;
+  height:100%;
+  padding:16px;
+  box-sizing:border-box;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+.card-wrap{
+  flex:1;
+  perspective:1400px;
+  touch-action: manipulation;
+}
+.card{
+  position:relative;
+  width:100%;
+  height:100%;
+  max-height:560px;
+  margin:auto;
+  background:var(--card-bg);
+  border-radius:26px;
+  transform-style:preserve-3d;
+  transition:transform .5s;
+}
+.card.is-flipped{transform:rotateY(180deg)}
+.face{
+  position:absolute;
+  inset:0;
+  padding:22px;
+  backface-visibility:hidden;
+  display:flex;
+  flex-direction:column;
+}
+.face.back{transform:rotateY(180deg)}
+.badge{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-weight:900;
+  color:white;
+  font-size:17px;
+}
+.badge-left{
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+.progress{
+  font-size:15px;
+  background:rgba(255,255,255,.12);
+  padding:6px 12px;
+  border-radius:12px;
+}
+.bubble{
+  flex:1;
+  margin-top:14px;
+  background:var(--text-bg);
+  color:var(--text-color);
+  border-radius:20px;
+  padding:28px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:right;
+}
+pre{
+  margin:0;
+  white-space:pre-wrap;
+  direction:rtl;
+  text-align:right;
+  font:inherit;
+  font-size:clamp(21px, 2.6vw, 28px);
+  line-height:1.9;
+}
+.controls{
+  display:grid;
+  grid-template-columns:1fr auto 1fr;
+  gap:12px;
+  align-items:center;
+}
+button{
+  padding:14px 18px;
+  border-radius:18px;
+  border:none;
+  background:#1a3b6e;
+  color:white;
+  font-weight:900;
+  font-size:15px;
+}
+button.center{background:#25518f}
+button.read{grid-column:1 / -1;background:#163a6b}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+<div class="card-wrap" id="wrap">
+  <div class="card" id="card">
+
+    <div class="face front">
+      <div class="badge">
+        <div class="badge-left">🧠 سؤال</div>
+        <div class="progress" id="pf"></div>
+      </div>
+      <div class="bubble"><pre id="frontText"></pre></div>
+    </div>
+
+    <div class="face back">
+      <div class="badge">
+        <div class="badge-left">✨ جواب</div>
+        <div class="progress" id="pb"></div>
+      </div>
+      <div class="bubble"><pre id="backText"></pre></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="controls">
+  <button id="prev">⬅️ السابق</button>
+  <button id="flip" class="center">🔄 اقلب</button>
+  <button id="next">التالي ➡️</button>
+  <button id="read" class="read">🔊 اقرأ</button>
+</div>
+
+</div>
+
+<script>
+const ctx=new (window.AudioContext||window.webkitAudioContext)();
+function sound(f,d=0.08){
+  const o=ctx.createOscillator(), g=ctx.createGain();
+  o.frequency.value=f;
+  o.connect(g); g.connect(ctx.destination);
+  g.gain.value=0.05;
+  o.start(); o.stop(ctx.currentTime+d);
+}
+
+const cards=[
+
+/* افتتاحية الفحص العصبي */
+{
+front:`🧠✨
+هل تستطيع قراءة
+إشارات الدماغ
+من أول نظرة؟
+
+الفحص العصبي
+لغة صامتة`,
+back:`الفحص السريري العصبي لحديثي الولادة
+
+🧠 توازن
+✨ منعكسات
+👶 أمان عصبي`
+},
+
+/* ===== بطاقات الفحص العصبي (كما في الملف الأصلي حرفياً) ===== */
+{front:`ما هي المكوّنات الرئيسية للفحص العصبي لحديث الولادة؟`,
+back:`مراقبة الرضيع لأي حركة غير طبيعية، تقييم المقوية العضلية، تقييم المنعكسات، تقييم الأعصاب القحفية، فحص الحركة، وتقييم الأعصاب المحيطية.`},
+
+{front:`ما العلامات السريرية لنقص التوتر (Hypotonia) عند حديثي الولادة؟`,
+back:`سقوط الذراعين إلى الخلف كدمية قماش عند رفعه، وانخفاض الرأس بشكل كبير في وضع التعليق البطني مع مبالغة في التقوّس المحدّب للعمود الفقري.`},
+
+{front:`ما البنية العصبية التي يُستدلّ من خلالها على سلامة المنعكسات البدئية عند حديثي الولادة؟`,
+back:`تعكس هذه المنعكسات البدئية نشاط جذع الدماغ الطبيعي.`},
+
+{front:`كيف يتم فحص منعكس الوقاية (Protective reflex) عند حديثي الولادة؟`,
+back:`إذا غُطِّي الأنف والعينان بشيء ما، فإن الرضيع سيقوّس ظهره ويقوم بمحاولات لإزاحة هذا الشيء بعيداً.`},
+
+{front:`كيف يتم فحص منعكس الجذر (Rooting reflex)؟`,
+back:`عند لمس الشفة وزاوية الخد بإصبع، سيدير الرضيع رأسه نحو تلك الجهة ويفتح فمه.`},
+
+{front:`كيف يتم فحص منعكس المصّ (Sucking reflex)؟`,
+back:`عند لمس سقف فم الرضيع بإصبع أو لهاية أو الثدي أو حلمة الزجاجة، يبدأ الرضيع بالمص.`},
+
+{front:`كيف يتم فحص منعكس الإطباق الراحي (Grasp reflex)؟`,
+back:`عند وضع إصبع أو جسم ما في راحة يد الرضيع، سيقبض الرضيع على الإصبع بثني الأصابع.`},
+
+{front:`كيف يتم فحص منعكس الإطباق الأخمصي عند حديثي الولادة؟`,
+back:`عند حكّ منتصف باطن القدم للأعلى، تنثني الأصابع نحو الداخل كما لو أنها تقبض على الفاحص.`},
+
+{front:`كيف يتم فحص منعكس مورو (Moro reflex)؟`,
+back:`يُدعَم الرضيع من أعلى الظهر بيد واحدة، ثم يُترك ليسقط للخلف بمقدار ≥1 سم على يد الفاحص، فيحدث تبعيد متناظر للذراعين مع بسط الأصابع، يتبعها ثني وضمّ للذراعين.`},
+
+{front:`كيف يتم فحص منعكس الدعم الإيجابي (Positive support reflex)؟`,
+back:`عند حمل الرضيع من تحت الإبطين مع دعم الرأس وجعل قدميه تلامسان سطحاً مستوياً، يقوم ببسط الساقين لمدة 20 ثانية ثم بثنيهما إلى وضعية الجلوس.`},
+
+{front:`كيف يتم فحص منعكس السباحة (Swimming reflex)؟`,
+back:`عند وضع الرضيع بوضعية الانبطاح فوق ماء مسبح، يقوم بحركات ركلية تشبه السباحة.`},
+
+{front:`ما الطريقة التي يتم بها فحص الأعصاب القحفية عند حديثي الولادة؟`,
+back:`يُجرى فحص الأعصاب القحفية عند حديثي الولادة بطريقة غير مباشرة، اعتماداً على الملاحظة السريرية والاستجابات العصبية الانعكاسية.`},
+
+{front:`كيف يتم فحص الأعصاب القحفية المحركة للعين (العصب الثالث والرابع والسادس)؟`,
+back:`تُقيَّم من خلال حركات العين العفوية في جميع الاتجاهات.`},
+
+{front:`كيف يتم فحص العصب مثلث التوائم (العصب الخامس) عند حديثي الولادة؟`,
+back:`يُفحص من خلال منعكس المصّ واستجابة الوجه للمس مثل ملامسة الجبهة أو الخدين.`},
+
+{front:`ما الاضطرابات التي قد تُلاحظ في فحص الأعصاب المحيطية عند حديثي الولادة؟`,
+back:`شلل إرب–دوشين، شلل كلومبكه، شلل كامل للذراع، شلل العصب الوجهي، وأذية العصب الحجابي.`},
+
+{front:`ما الأعصاب المصابة في شلل إرب–دوشين عند حديثي الولادة؟`,
+back:`يحدث بسبب أذية في الجذرين الرقبيين الخامس والسادس (C5–C6) من الضفيرة العضدية.`},
+
+{front:`ما التظاهر السريري لشلل إرب–دوشين عند حديثي الولادة؟`,
+back:`الذراع في وضعية النادل المتواضع، تُحفَظ حركة البسط، وغياب منعكس مورو في الطرف المصاب.`},
+
+{front:`ما الأعصاب المصابة في شلل كلومبكه عند حديثي الولادة؟`,
+back:`ينتج عن أذية في C8 وT1 من الضفيرة العضدية.`},
+
+{front:`ما التظاهر السريري لشلل كلومبكه عند حديثي الولادة؟`,
+back:`يد رخوة (Claw hand) مع ضعف أو غياب حركة اليد والأصابع وقد تترافق مع متلازمة هورنر.`},
+
+{front:`ما التظاهر السريري لشلل العصب الحجابي عند حديثي الولادة؟`,
+back:`تسرّع نفس وضائقة تنفسية ويُشخّص بالأمواج فوق الصوتية.`},
+
+/* ختامية */
+{
+front:`🧠✨
+أحسنت!
+
+الفحص العصبي
+ليس اختباراً…
+
+بل أمانٌ طويل الأمد`,
+back:`👶💙
+فحص دقيق اليوم
+يعني
+حماية دماغ الغد`
+}
+
+];
+
+let i=0, flipped=false;
+const card=document.getElementById("card");
+const wrap=document.getElementById("wrap");
+const ft=document.getElementById("frontText");
+const bt=document.getElementById("backText");
+const pf=document.getElementById("pf");
+const pb=document.getElementById("pb");
+
+function render(){
+  ft.textContent=cards[i].front;
+  bt.textContent=cards[i].back;
+  pf.textContent=pb.textContent=`${i+1} / ${cards.length}`;
+  flipped=false;
+  card.classList.remove("is-flipped");
+}
+render();
+
+function toggleFlip(){
+  flipped=!flipped;
+  card.classList.toggle("is-flipped",flipped);
+  sound(800,0.1);
+}
+
+prev.onclick=()=>{if(i>0){i--;render();sound(420)}};
+next.onclick=()=>{if(i<cards.length-1){i++;render();sound(520)}};
+flip.onclick=toggleFlip;
+read.onclick=()=>{
+  sound(950,0.05);
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(flipped?cards[i].back:cards[i].front);
+  u.lang='ar';
+  speechSynthesis.speak(u);
+};
+
+let sx=0, sy=0;
+wrap.addEventListener("pointerdown",e=>{sx=e.clientX; sy=e.clientY});
+wrap.addEventListener("pointerup",e=>{
+  const dx=e.clientX-sx, dy=e.clientY-sy;
+  if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)){
+    dx>0?prev.onclick():next.onclick();
+  }else{
+    toggleFlip();
+  }
+});
+</script>
+</body>
+</html>
