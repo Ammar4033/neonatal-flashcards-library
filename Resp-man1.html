@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>مبادئ التدبير التنفسي والتهوية الآلية عند حديثي الولادة</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+      background: linear-gradient(180deg, #04142F, #0B2348);
+      font-family: system-ui, Tahoma, Arial;
+      box-sizing: border-box;
+    }
+    * { box-sizing: border-box; }
+
+    .app {
+      width: 100%;
+      max-width: 980px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .card-container {
+      touch-action: pan-y;
+      width: 860px;
+      max-width: 92vw;
+      height: 420px;
+      perspective: 1400px;
+    }
+
+    .card {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.55s ease;
+      border-radius: 22px;
+    }
+
+    .card.is-flipped {
+      transform: rotateY(180deg);
+    }
+
+    .card-face {
+      position: absolute;
+      inset: 0;
+      background: #fff8db;
+      color: #000;
+      border-radius: 22px;
+      padding: 34px 34px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      backface-visibility: hidden;
+      overflow: hidden;
+    }
+
+    .front {
+      border: 4px solid #8a63d2;
+    }
+
+    .back {
+      border: 4px solid #1a76ff;
+      transform: rotateY(180deg);
+    }
+
+    .emoji {
+      font-size: 45px;
+      line-height: 1;
+      margin-bottom: 12px;
+    }
+
+    .card-text {
+      font-size: 28px;
+      line-height: 1.8;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .back .card-text {
+      font-weight: 800;
+    }
+
+    .controls {
+      width: 860px;
+      max-width: 92vw;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .nav-row {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .small-row {
+      display: flex;
+      justify-content: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: none;
+      border-radius: 18px;
+      padding: 14px 18px;
+      color: #fff;
+      font-weight: 800;
+      cursor: pointer;
+      font-size: 18px;
+    }
+
+    .btn-next, .btn-prev {
+      background: #1a76ff;
+      flex: 1;
+      min-width: 160px;
+      font-size: 20px;
+      padding: 16px 18px;
+    }
+
+    .btn-flip, .btn-speak {
+      background: #8a63d2;
+      min-width: 160px;
+    }
+
+    .meta {
+      color: rgba(255,255,255,0.85);
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    /* Tablet */
+    @media (min-width: 601px) and (max-width: 999px) {
+      .card-container { height: 450px; }
+      .card-text { font-size: 26px; }
+      .emoji { font-size: 42px; }
+    }
+
+    /* Mobile */
+    @media (max-width: 600px) {
+      body { padding: 10px; justify-content: flex-start; padding-top: 15px; }
+      .card-container { width: 90vw; max-width: 420px; height: 55vh; max-height: 500px; min-height: 320px; }
+      .card-face { padding: 30px 25px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+      .card-text { font-size: 22px; }
+      .emoji { font-size: 38px; }
+      .controls { margin-top: 15px; gap: 12px; }
+      .btn-next, .btn-prev { min-width: 0; }
+      button { font-size: 16px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <div class="meta" id="progress"></div>
+
+    <div class="card-container" id="cardContainer">
+      <div class="card" id="card">
+        <div class="card-face front" id="frontFace">
+          <div class="emoji">🧐</div>
+          <div class="card-text" id="frontText"></div>
+        </div>
+        <div class="card-face back" id="backFace">
+          <div class="emoji">👏</div>
+          <div class="card-text" id="backText"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="nav-row">
+        <button class="btn-prev" id="prev">السابق</button>
+        <button class="btn-next" id="next">التالي</button>
+      </div>
+      <div class="small-row">
+        <button class="btn-flip" id="flip">اقلب</button>
+        <button class="btn-speak" id="speak">🔊 اقرأ</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const cards = [{"front": "خلّينا نشوف مستوى المصطلحات 🧐\nSpO2، SaO2، PaO2، Vt مع PCV… أسماء مألوفة بالنسبة لك؟ ولا بدّنا نثبّتهم بطاقةً بطاقةً؟", "back": "خلّينا نمشي بطاقةً بطاقةً نثبّت المعلومة… ونكمل 👏"}, {"front": "ما معنى الأنين الزفيري (Grunting)؟", "back": "صوت ناتج عن إغلاق جزئي للمزمار (glottis) أثناء الزفير، يهدف إلى الحفاظ على ضغط نهاية الزفير الإيجابي (PEEP) ومنع انخماص الحويصلات الهوائيّة."}, {"front": "ما السبب الفيزيولوجي المرضي لظهور علامة السحب بين وتحت الأضلاع وفوق القص؟", "back": "وجود نقص في مطاوعة الرئة (lung compliance) أو زيادة في مقاومة الطرق الهوائيّة (airway resistance)، مما يزيد من الجهد التنفّسي."}, {"front": "ما أهميّة تحليل غازات الدم؟", "back": "أدق وسيلة لتقييم التهوية والأكسجة واضطرابات التوازن الحمضي القاعدي، ويُعد معياراً ذهبيّاً لتقييم الحالة التنفّسيّة، لا سيما لدى الرضع ناقصي وزن الولادة."}, {"front": "ما الفروقات الأساسيّة في تفسير غازات الدم الوريديّة مقارنةً بالشريانيّة؟", "back": "pH الوريدي أقل قليلاً، وPaCO2 الوريدي أعلى قليلاً، وPaO2 الوريدي لا يفيد في تقييم الأكسجة."}, {"front": "ما النطاقات الطبيعيّة لغازات الدم الشريانيّة عند تامّي الحمل؟", "back": "🔹 PaO2: 80–95 ملم زئبق\n🔹 HCO3: 24–26 ملمك/لتر\n🔹 PaCO2: 35–45 ملم زئبق\n🔹 pH: 7.32–7.38"}, {"front": "ما النطاقات الطبيعيّة لغازات الدم الشريانيّة عند الخدّج أقل من 30 أسبوعاً؟", "back": "🔹 PaO2: 45–60 ملم زئبق\n🔹 HCO3: 19–22 ملمك/لتر\n🔹 PaCO2: 38–50 ملم زئبق\n🔹 pH: 7.27–7.32"}, {"front": "ما الفرق بين SaO2 و SpO2؟", "back": "SaO2 هو تشبع الأكسجين الشرياني بالقياس المباشر؛ وSpO2 هو تشبع الأكسجين الشرياني بالمقياس النبضي."}, {"front": "ما هو تعريف PaO₂؟", "back": "هو قياس ضغط الأكسجين المذاب في بلازما الدم. من المهم ملاحظة أن هذا القياس يعبر عن الأكسجين “الذائب” فقط، ولا يشمل الأكسجين المرتبط بالهيموجلوبين (الذي يقاس عبر SaO2)."}, {"front": "ما علاقة SpO2 بقيم PaO2؟", "back": "يوجد ضعف ارتباط بين SpO2 وPaO2 عند القيم العالية والدنيا؛ وSpO2 بين %88 إلى %93 يتوافق مع PaO2 بين 40 إلى 80 ملم زئبق."}, {"front": "ما مزايا قياس التأكسج النبضي (SpO2)؟", "back": "حدّ أدنى من الضرر الذي يلحق بالجلد، وعدم حاجة الجهاز إلى المعايرة اليدويّة."}, {"front": "ما العوامل التي تؤثر سلباً على نتيجة قياس التأكسج النبضي (SpO2)؟", "back": "درجة حرارة الجلد والتروية الدمويّة."}, {"front": "متى تكون صور الصدر الشعاعيّة أساسيّة؟", "back": "لتشخيص المرض الرئوي، وتدبير الدعم التنفّسي، واستقصاء أي تغير حاد في الحالة التنفّسيّة."}, {"front": "ما الطرق غير الباضعة لمراقبة التشبع الأكسجيني/الغازات؟", "back": "🔹 قياس التأكسج النبضي (SpO2)\n🔹 مراقبة الأكسجين عبر الجلد (TcPO2)\n🔹 مراقبة ثاني أكسيد الكربون عبر الجلد (tcPCO2)\n🔹 مراقبة ثاني أكسيد الكربون في نهاية الزفير (ETCO2)\n🔹 التحليل الطيفي بالأشعة تحت الحمراء القريبة (NIRS)"}, {"front": "ما استخدامات التحليل الطيفي بالأشعة تحت الحمراء القريبة (NIRS) عند حديثي الولادة الخدّج؟", "back": "مراقبة تروية الدماغ بشكل غير باضع، والكشف المبكر عن تغيرات في إشباع الأوكسجين الدماغي."}, {"front": "ما قيود مراقبة ثاني أكسيد الكربون في نهاية الزفير (ETCO2)؟", "back": "تتطلب محولاً للأنبوب الرغامي مما قد يزيد الحيّز الميت لدارة المريض؛ وتكون الدقّة محدودة عندما يكون المعدل التنفسي أكثر من 60 نفس/دقيقة أو إذا كانت رطوبة الهواء الشهيقي مفرطة؛ أو وجود ضعف بتروية الرئتين."}, {"front": "ما المقصود بـ FiO2؟", "back": "هي النسبة المئويّة للأكسجين المستنشق ويُعبَّر عنها إمّا كنسبة مئويّة (%21–%100) أو ككسر عشري (0.21–1.00)."}, {"front": "بأي مكان تُقاس ضغوط الطرق الهوائيّة في التهوية الغازيّة (Airway pressure)؟", "back": "يُقاس إمّا بنهاية الدارة عند وصلة الأنبوب الرغامي أو داخل جهاز التهوية (حسب الجهاز)."}, {"front": "ما هو (PIP)؟", "back": "الضغط الأقصى الذي يُبلَغ أثناء الشهيق (ضغط الشهيق الذروي)."}, {"front": "ماذا تعكس الحاجة إلى PIP مرتفع؟", "back": "ضعف مطاوعة الرئة أو استهداف حجم مدّي مفرطاً الكِبَر."}, {"front": "ما المقصود بمصطلح MAP في سياق التهوية الآليّة؟", "back": "هو الضغط الوسطي المطبّق على الطرق الهوائيّة خلال دورة تنفّسيّة كاملة (شهيق وزفير)."}, {"front": "ما الدور السريري الرئيسي لـ MAP في التهوية الآليّة؟", "back": "تحسين التشبع الأكسجيني عن طريق فتح المزيد من الحويصلات الرئويّة."}, {"front": "ما الذي يحدد مستوى MAP؟", "back": "يتحدد مستوى MAP بالعديد من العوامل وأهمها: PEEP، ضغط الشهيق (PIP)، زمن الشهيق (Ti)، F معدل التنفس."}, {"front": "أي من العوامل التالية أكثر تأثيراً بمستوى ضغط الطرق الهوائيّة الوسطي: PEEP, PIP, Ti, F؟", "back": "PEEP لأنه يستمر طوال دورة التنفس."}, {"front": "ما المقصود بالحجم المدّي (Vt)؟", "back": "هو مقدار الهواء الذي يدخل الرئة خلال الشهيق العادي أو يخرج خلال الزفير."}, {"front": "كيف يُحسب الحجم المدّي (Vt)؟", "back": "يُحسب من التدفق الذي تقيسه المنفّسة (مل/ثانية)، ويُقاس بالميليلترات لكل نَفَس."}, {"front": "ما الحجم المدّي المستهدف عادةً عند الرضع؟", "back": "عادةً 4–6 مل/كغ."}, {"front": "ما المقصود بالحجم في الدقيقة (MV) وكيف يُحسب؟", "back": "الحجم في الدقيقة = معدل التنفس بالدقيقة × الحجم المدّي. (MV = VT × Rate)"}, {"front": "ما الدور الرئيسي لـ Minute Volume في الوظيفة التنفسيّة؟", "back": "التحكم في طرح ثاني أكسيد الكربون (CO₂). زيادة MV تسرّع طرح CO₂، بينما نقصه يؤدي إلى احتباس CO₂ (Hypercapnia)."}, {"front": "ما العامل الأكثر أهميّة في تحديد Minute Volume في نظام تحكم بالضغط (PCV)؟", "back": "فرق الضغط المؤثر (Driving Pressure)، أي الفرق بين ضغط الشهيق (PIP) والـ PEEP، هو العامل المباشر الأكثر أهميّة في تحديد الحجم الجاري (Vt)، وبالتالي Minute Volume (MV)."}, {"front": "كيف يتم ضبط الحجم المدّي (Tidal Volume - Vt) في نظام التحكم بالضغط (PCV)؟", "back": "لا يُضبط الحجم المدّي مباشرةً في نظام التحكم بالضغط، بل يتم تحديده بشكل غير مباشر من خلال ضبط:\n🔹 الضغط الشهيقي (PIP)\n🔹 الـ PEEP\n🔹 زمن الشهيق (Ti)"}, {"front": "ما العامل الأكثر تأثيراً بزيادة الحجم المدّي (Vt) في نظام التحكم بالضغط (PCV)؟", "back": "🔹 الضغط الشهيقي الذروي (PIP)"}, {"front": "ما المعلومات الرئيسيّة التي توفرها منحنيات التدفق–الحجم ومنحنيات الضغط–الحجم؟", "back": "🔹 منحنيات التدفق–الحجم: معلومات حول مقاومة الطرق الهوائيّة\n🔹 منحنيات الضغط–الحجم: توضح المطاوعة الديناميكيّة المتغيرة للرئة"}, {"front": "ما تعريف المطاوعة (Compliance - CL)؟", "back": "هي مقدار تغير الحجم / تغير الضغط."}, {"front": "كيف تُفسَّر قيم المطاوعة CL؟", "back": "🔹 أقل من 1.0 مل/سم ماء: تتوافق مع مرض رئوي خلالي أو سنخي مثل متلازمة الضائقة التنفّسيّة\n🔹 1.0 إلى 2.0 مل/سم ماء: تعكس التعافي، كما في الحال بعد المعالجة بالسورفاكتانت"}, {"front": "ما العوامل التي تتعلق بها المقاومة (Resistance - RL)؟", "back": "🔹 المقطع العرضي للطرق الهوائيّة (القطر)\n🔹 طول الطريق الهوائي (خاصة الأنبوب الرغامي)\n🔹 معدل الجريان\n🔹 كثافة ولزوجة الغاز"}, {"front": "ما هو ثابت الزمن (Time constant - KT) وماذا يعني 1 ثابت زمن؟", "back": "KT = حاصل ضرب المطاوعة × المقاومة (بالثواني).\nعند 1 ثابت زمن، يكون 63% من فرق الضغط قد توازن، وبالتالي 63% من الحجم المدّي قد دخل (أو خرج)."}, {"front": "كم ثابت زمن على الأقل يحتاجه الرضع “الطبيعيون” لإتمام الشهيق أو الزفير؟", "back": "يحتاج الرضيع “الطبيعي” عادةً إلى 3 ثوابت زمن لإتمام الشهيق أو الزفير."}, {"front": "ما نسبة دخول/خروج الحجم المدّي بعد 3 ثوابت زمن؟", "back": "بعد 3 ثوابت زمنيّة، يكون %95 من الحجم المدّي قد دخل (أثناء الشهيق) أو خرج (أثناء الزفير) من الأسناخ."}, {"front": "ما الزمن اللازم للوصول إلى توازن ضغط بنسبة 99%؟", "back": "يحتاج حوالي 5 ثوابت زمن للوصول إلى 99% من توازن الضغط."}, {"front": "ماذا يحدث إذا كان زمن الزفير أقل من 3 أضعاف ثابت الزمن؟", "back": "قد يؤدي ذلك إلى احتباس الغاز؛ ولتجنب احتباس الغاز يجب أن يكون زمن الزفير المقاس أكثر من 3 أضعاف ثابت الزمن (0.36–0.45 ثانية)."}, {"front": "مبروك 👏 وصلت للنهاية… هلق المصطلحات صارت أسهل بكتير.", "back": "لا تنسى تراجع بطاقات الأسبوع السابق واللي قبله لتبقى متذكرها على طول 🙂👉"}];
+    let index = 0;
+    let flipped = false;
+
+    const cardEl = document.getElementById('card');
+    const frontText = document.getElementById('frontText');
+    const backText  = document.getElementById('backText');
+    const progress  = document.getElementById('progress');
+
+    function renderCard(i) {
+      const c = cards[i];
+      frontText.textContent = c.front;
+      backText.textContent = c.back;
+      progress.textContent = `${i+1} / ${cards.length}`;
+      flipped = false;
+      cardEl.classList.remove('is-flipped');
+    }
+
+    function flipCard() {
+      flipped = !flipped;
+      cardEl.classList.toggle('is-flipped', flipped);
+    }
+
+    function prevCard() {
+      if (index > 0) {
+        index--;
+        renderCard(index);
+      }
+    }
+
+    function nextCard() {
+      if (index < cards.length - 1) {
+        index++;
+        renderCard(index);
+      }
+    }
+
+    // --- UI sounds (Web Audio) ---
+    let _sndCtx = null;
+
+    function _getCtx() {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return null;
+      if (!_sndCtx) _sndCtx = new AudioCtx();
+      return _sndCtx;
+    }
+
+    function _tone(freq, dur = 0.07, wave = 'triangle', peak = 0.06) {
+      try {
+        const ctx = _getCtx();
+        if (!ctx) return;
+
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = wave;
+        osc.frequency.setValueAtTime(freq, ctx.currentTime);
+
+        gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(peak, ctx.currentTime + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start();
+        osc.stop(ctx.currentTime + dur + 0.01);
+      } catch (_) { /* ignore */ }
+    }
+
+    function playPrevSound() {
+      // soft descending chime
+      _tone(560, 0.06, 'triangle', 0.05);
+      setTimeout(() => _tone(420, 0.08, 'triangle', 0.05), 55);
+    }
+
+    function playNextSound() {
+      // soft ascending chime
+      _tone(420, 0.06, 'triangle', 0.05);
+      setTimeout(() => _tone(560, 0.08, 'triangle', 0.05), 55);
+    }
+
+    function playFlipSound() {
+      // short airy tone
+      _tone(660, 0.07, 'sine', 0.04);
+    }
+
+// Wrap actions to add click sound
+    function flipCardWithSound() { playFlipSound(); flipCard(); }
+    function prevCardWithSound() { playPrevSound(); prevCard(); }
+    function nextCardWithSound() { playNextSound(); nextCard(); }
+
+    // Buttons
+    document.getElementById('prev').addEventListener('click', prevCardWithSound);
+    document.getElementById('next').addEventListener('click', nextCardWithSound);
+    document.getElementById('flip').addEventListener('click', flipCardWithSound);
+
+    // Speech synthesis
+    document.getElementById('speak').addEventListener('click', () => {
+      if (!window.speechSynthesis) {
+        alert('Browser does not support speech');
+        return;
+      }
+      const text = flipped ? cards[index].back : cards[index].front;
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = /[\u0600-\u06FF]/.test(text) ? 'ar-SA' : 'en-US';
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(u);
+    });
+
+    // --- Robust swipe & drag gestures ---
+    const container = document.getElementById('cardContainer');
+    const SWIPE_THRESHOLD = 40;
+
+    let startX = 0, startY = 0, isDown = false;
+
+    function startGesture(x, y) {
+      startX = x; startY = y;
+      isDown = true;
+    }
+    function endGesture(x, y) {
+      if (!isDown) return;
+      isDown = false;
+
+      const dx = x - startX;
+      const dy = y - startY;
+
+      if (Math.abs(dx) > SWIPE_THRESHOLD && Math.abs(dx) > Math.abs(dy)) {
+        if (dx < 0) nextCardWithSound();
+        else prevCardWithSound();
+        return;
+      }
+      flipCardWithSound();
+    }
+
+    // Touch events (mobile/tablet)
+    container.addEventListener('touchstart', (e) => {
+      if (!e.touches || e.touches.length === 0) return;
+      const t = e.touches[0];
+      startGesture(t.clientX, t.clientY);
+    }, {passive: true});
+
+    container.addEventListener('touchmove', (e) => {
+      if (!isDown || !e.touches || e.touches.length === 0) return;
+      const t = e.touches[0];
+      const dx = Math.abs(t.clientX - startX);
+      const dy = Math.abs(t.clientY - startY);
+      // Prevent scrolling when swiping horizontally
+      if (dx > dy && dx > 10) e.preventDefault();
+    }, {passive: false});
+
+    container.addEventListener('touchend', (e) => {
+      const t = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0] : null;
+      if (!t) return;
+      endGesture(t.clientX, t.clientY);
+    }, {passive: true});
+
+    // Mouse drag (desktop/laptop)
+    container.addEventListener('mousedown', (e) => {
+      startGesture(e.clientX, e.clientY);
+    });
+
+    window.addEventListener('mouseup', (e) => {
+      if (!isDown) return;
+      endGesture(e.clientX, e.clientY);
+    });
+
+    // Keyboard shortcuts
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft') prevCardWithSound();
+      else if (e.key === 'ArrowRight') nextCardWithSound();
+      else if (e.key === ' ' || e.key === 'Enter') flipCardWithSound();
+    });
+
+    // Initial render
+    renderCard(index);
+  </script>
+</body>
+</html>
