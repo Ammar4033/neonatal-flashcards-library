@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>أساسيات تغذية حديثي الولادة: الجزء الأول</title>
+
+<style>
+:root{
+  --card-bg:#0B2348;
+  --text-bg:#CFE8FF;
+  --text-color:#0B0F1A;
+}
+html,body{
+  margin:0;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+}
+body{
+  background:#040B18;
+  font-family: system-ui, Tahoma, Arial;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+.app{
+  width:100%;
+  max-width:820px;
+  height:100%;
+  padding:16px;
+  box-sizing:border-box;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+.card-wrap{
+  flex:1;
+  perspective:1400px;
+  touch-action: pan-y;
+}
+.card{
+  position:relative;
+  width:100%;
+  height:100%;
+  max-height:560px;
+  margin:auto;
+  background:var(--card-bg);
+  border-radius:26px;
+  transform-style:preserve-3d;
+  transition:transform .5s;
+}
+.card.is-flipped{transform:rotateY(180deg)}
+.face{
+  position:absolute;
+  inset:0;
+  padding:22px;
+  backface-visibility:hidden;
+  display:flex;
+  flex-direction:column;
+}
+.face.back{transform:rotateY(180deg)}
+.badge{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-weight:900;
+  color:white;
+  font-size:17px;
+}
+.badge-left{
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+.progress{
+  font-size:15px;
+  background:rgba(255,255,255,.12);
+  padding:6px 12px;
+  border-radius:12px;
+}
+.bubble{
+  flex:1;
+  margin-top:14px;
+  background:var(--text-bg);
+  color:var(--text-color);
+  border-radius:20px;
+  padding:28px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:right;
+}
+pre{
+  margin:0;
+  white-space:pre-wrap;
+  direction:rtl;
+  text-align:right;
+  font:inherit;
+  font-size:clamp(21px, 2.6vw, 28px);
+  line-height:1.9;
+}
+.controls{
+  display:grid;
+  grid-template-columns:1fr auto 1fr;
+  gap:12px;
+  align-items:center;
+}
+button{
+  padding:14px 18px;
+  border-radius:18px;
+  border:none;
+  background:#1a3b6e;
+  color:white;
+  font-weight:900;
+  font-size:15px;
+}
+button.center{background:#25518f}
+button.read{grid-column:1 / -1;background:#163a6b}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+<div class="card-wrap" id="wrap">
+  <div class="card" id="card">
+
+    <div class="face front">
+      <div class="badge">
+        <div class="badge-left">🧐 سؤال</div>
+        <div class="progress" id="pf"></div>
+      </div>
+      <div class="bubble"><pre id="frontText"></pre></div>
+    </div>
+
+    <div class="face back">
+      <div class="badge">
+        <div class="badge-left">🤓 جواب</div>
+        <div class="progress" id="pb"></div>
+      </div>
+      <div class="bubble"><pre id="backText"></pre></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="controls">
+  <button id="prev">⬅️ السابق</button>
+  <button id="flip" class="center">🔄 اقلب</button>
+  <button id="next">التالي ➡️</button>
+  <button id="read" class="read">🔊 اقرأ</button>
+</div>
+
+</div>
+
+<script>
+/* صوت */
+const ctx=new (window.AudioContext||window.webkitAudioContext)();
+function sound(f,d=0.08){
+  const o=ctx.createOscillator(), g=ctx.createGain();
+  o.frequency.value=f;
+  o.connect(g); g.connect(ctx.destination);
+  g.gain.value=0.05;
+  o.start(); o.stop(ctx.currentTime+d);
+}
+
+/* ===== البطاقات (تغذية حديثي الولادة: الجزء الأول) ===== */
+const cards=[
+
+{front:`قبل ما نبلّش… جاهز تعمل “دفعة مركّزة” وتطلع منها فاهم ومتذكر؟`,
+ back:`ممتاز. خليك سريع: جاوب أولاً بعقلك، وبعدها ثبّت بالمراجعة. كل بطاقة هون خطوة صغيرة نحو أداء أقوى وثقة أعلى.`},
+
+{front:`ما مدخول السعرات الحرارية الذي يحقق النمو المثالي عند الأطفال تامي الحمل؟`,
+ back:`100–120 كيلو كالوري/كغ/يوم.`},
+
+{front:`ما احتياج الخدّج من السعرات الحرارية لتحقيق زيادة مثالية في الوزن؟`,
+ back:`120–140 كيلو كالوري/كغ/يوم.`},
+
+{front:`ما احتياج الرضيع من الكربوهيدرات لتوفير 40%–50% من إجمالي السعرات الحرارية؟`,
+ back:`يقارب 10 غ/كغ/يوم، وللخدّج 12–14 غ/كغ/يوم.`},
+
+{front:`ما الكربوهيدرات الرئيسية في حليب الأم؟`,
+ back:`اللاكتوز.`},
+
+{front:`كم يوفّر اللاكتوز تقريباً من مجموع السعرات الحرارية؟`,
+ back:`يقارب نصف مجموع السعرات الحرارية.`},
+
+{front:`أي إنزيم يحلّل اللاكتوز، وإلى ماذا يحلّله؟`,
+ back:`اللاكتاز (β-غالاكتوزيداز) يحلّل اللاكتوز إلى غلوكوز وغالاكتوز.`},
+
+{front:`نشاط اللاكتاز المعوي قليل لدى الخدّج لكنهم قادرون على هضم اللاكتوز بكفاءة: صح أم خطأ؟`,
+ back:`صح.`},
+
+{front:`لماذا تُعد بوليمرات الغلوكوز أسهل هضماً للخديج مقارنة باللاكتوز (نظرياً)؟`,
+ back:`لأن هضمها يتم بواسطة إنزيمات α غلوكوزيداز التي يصل نشاطها إلى ما يقارب مستويات البالغين بوقت أبكر بكثير مما يحدث مع β غالاكتوزيداز.`},
+
+{front:`ما فائدة بوليمرات الغلوكوز في الحليب الصناعي؟`,
+ back:`تزيد السعرات الحرارية دون رفع الأزمولية.`},
+
+{front:`ما التقدير الكافي لتناول البروتين للرضيع تام الحمل وللرضع الخدّج؟`,
+ back:`تام الحمل 1.5–2.2 غ/كغ/يوم؛ الخدّج 3.5–4.5 غ/كغ/يوم.`},
+
+{front:`لماذا يُعد البروتين مهماً للغاية في تغذية شديدي الخداج؟`,
+ back:`انقطاع الحياة داخل الرحم يسبب نقصاً بروتينياً قد يصعب تداركه، وترتبط الدراسات بين المدخول المبكر من البروتين وتحسّن النمو.`},
+
+{front:`ما الإنزيمات التي يزوّد بها حليب الأم الخدّج لتحلّل الشحوم (Lipases)؟`,
+ back:`ليباز البروتينات الشحمية (Lipoprotein lipase) وإستراز أملاح الصفراء (Bile salt esterase) والليباز غير المُفعّل (Nonactivated lipase).`},
+
+{front:`ما السليفة الحيوية لحمض الأراشيدونيك (ARA)؟`,
+ back:`حمض اللينوليك (LA) هو السليفة التي يُشتق منها حمض الأراشيدونيك في الجسم.`},
+
+{front:`ما السليفة الحيوية لحمض الدوكوساهيكسانويك (DHA)؟`,
+ back:`حمض ألفا-اللينولينيك (ALA) هو السليفة التي يتحول منها حمض DHA داخل الجسم.`},
+
+{front:`كيف تنتقل الأحماض الدهنية متعددة عدم الإشباع طويلة السلسلة (LCPUFAs) عادةً خلال الحمل، وكيف يكون مخزون الخدّج منها؟`,
+ back:`تنتقل بشكل أساسي عبر المشيمة في الثلث الأخير من الحمل، ما يعرّض الأطفال الخدّج لخطر نقصها.`},
+
+{front:`ما المدى التقريبي لحاجة حمض اللينوليك عند الأطفال الخدّج؟`,
+ back:`من 300 إلى 1500 ملغ/كغ/يوم تقريباً.`},
+
+{front:`ما المدى التقريبي لحاجة حمض اللينولينيك عند الأطفال الخدّج؟`,
+ back:`من 50 إلى 150 ملغ/كغ/يوم تقريباً.`},
+
+{front:`لماذا يجب توخي الحذر عند دعم الوليد بالفيتامينات؟`,
+ back:`لأن التسمم قد يحدث مع الفيتامينات الذائبة في الماء والدهون نتيجة عدم اكتمال وظائف الكلى والكبد.`},
+
+{front:`ما الجرعة المثلى لفيتامين A؟`,
+ back:`لا تزال بحاجة إلى مزيد من الدراسة.`},
+
+{front:`ما أثر إعطاء فيتامين A في التحليلات التلوية، وما الارتباط المذكور بمخزون فيتامين A؟`,
+ back:`قد يسبب خفضاً متواضعاً في خطر خلل التنفس القصبي الرئوي (BPD) أو الوفاة، ويرتبط انخفاض مخزون الأنسجة من فيتامين A بانخفاض القدرة على ترميم نسيج الرئة.`},
+
+{front:`كيف يُوصف محتوى فيتامين A في حليب الأم (اللبأ والحليب الناضج)؟`,
+ back:`أعلى في اللبأ (400–600 وحدة دولية/دل) ثم ينخفض في الحليب الناضج إلى (60–200 وحدة دولية/دل).`},
+
+{front:`أي المعادن وُجد أنه يُساعد في تخزين فيتامين A في الكبد؟`,
+ back:`الزنك يُساهم في استقلاب ونقل فيتامين A، ونقصه قد يُضعف تخزينه في الكبد.`},
+
+{front:`ما أعراض التسمم بفيتامين A عند حديثي الولادة؟`,
+ back:`الجرعات الزائدة قد تسبب ارتفاع الضغط داخل الجمجمة بدون وجود ورم (الورم الدماغي الكاذب Pseudotumor cerebri)، وقد يظهر كـ: انتفاخ اليافوخ، قيء، تهيّج وخمول.`},
+
+{front:`ما الجرعة الموصى بها لفيتامين D حسب لجنة التغذية في الأكاديمية الأمريكية لطب الأطفال (AAP)؟`,
+ back:`400 وحدة دولية/يوم.`},
+
+{front:`ما الهدف البلازمي الذي تكفي له جرعة 400 وحدة دولية/يوم من فيتامين D لدى معظم الرضع؟`,
+ back:`25-هيدروكسي فيتامين D = 50 نانومول/ليتر.`},
+
+{front:`لماذا تنصح جمعية الغدد الصماء (Endocrine Society) بجرعة تصل إلى 1000 وحدة دولية/يوم من فيتامين D للرضع؟`,
+ back:`لدعم فوائد غير هيكلية مثل تقوية المناعة والنمو العصبي، برفع 25(OH)D إلى ≥75 نانومول/ليتر.`},
+
+{front:`لماذا لا يحقق الخديج الذي يتلقى حليب أم غير مُدعّم معدلات التراكم داخل الرحم للكالسيوم والفوسفور؟`,
+ back:`لأن المدخول يبقى أقل بكثير مما يلزم لتحقيق معدلات التراكم داخل الرحم.`},
+
+{front:`كيف يمكن الوصول إلى مدخول يومي يقارب 200 ملغ/كغ/يوم كالسيوم و100 ملغ/كغ/يوم فوسفور؟`,
+ back:`باستخدام مدعّمات حليب الأم المتخصصة (HMFs) و/أو تركيبات حليب الخدّج.`},
+
+{front:`ما الواسمات المخبرية المرتبطة بنقص مدخول الكالسيوم والفوسفور لدى الخدّج المعتمدين على حليب الأم؟`,
+ back:`انخفاض الفوسفور في المصل والبول، وارتفاع الفوسفاتاز القلوية في المصل.`},
+
+{front:`ما أفضل مؤشر لحالة الكالسيوم والفوسفور لدى الخدّج المعتمدين على حليب الأم، ومتى تُتابع قيمته بحذر؟`,
+ back:`فوسفور المصل، وتُتابع قيمته بحذر إذا انخفض تحت 4 ملغ/دل.`},
+
+{front:`ما الاختلاطات طويلة الأمد لفقر الدم الناتج عن نقص الحديد عند حديثي الولادة؟`,
+ back:`تأخر النمو العصبي، تأخر نضج جذع الدماغ السمعي، وضعف في الذاكرة والسلوك.`},
+
+{front:`ما العوامل التي قد تجعل الخدّج أكثر عرضة لنقص الحديد؟`,
+ back:`مخزون أقل عند الولادة، فقدان دم بسبب كثرة سحب الدم للفحوص، واحتياجات أعلى بسبب النمو السريع.`},
+
+{front:`ما الاستراتيجيات التي تساعد في تقليل فقدان الدم عند الخدّج بسبب سحب الدم المتكرر؟`,
+ back:`تقنيات تقليل سحب الدم و/أو استراتيجيات الحد من الفحوص قد تساعد في تقليل فقدان الدم.`},
+
+{front:`ما الإجراء الأهم لتحسين مخزون الحديد عند الولدان الخدّج وتامي الحمل؟`,
+ back:`تأخير قطع الحبل السري لمدة 60 ثانية على الأقل.`},
+
+{front:`كم يوفّر 1 مل من خلايا الدم الحمراء المكدّسة من الحديد، وما الخطر مع نقل الدم المتكرر؟`,
+ back:`0.5–1.0 ملغ من الحديد، وقد يكون فرط الحديد خطراً مع عمليات نقل الدم المتعددة.`},
+
+{front:`ما جرعة دعم الحديد الموصى بها للخدّج المستقرّين الذين لم يخضعوا لنقل دم حديثاً، ومتى تبدأ وإلى متى تستمر؟`,
+ back:`2–4 ملغ/كغ/يوم (حد أقصى 15 ملغ/يوم) من عمر أسبوعين حتى عمر 12 شهراً.`},
+
+{front:`لماذا يكون الخدّج أكثر عرضة لنقص الزنك مقارنة بتامي الحمل؟`,
+ back:`لأنهم يولدون قبل تراكم الزنك بشكل كافٍ في الثلث الأخير من الحمل، ولديهم مخزون أقل وقد يكون امتصاص الزنك أقل.`},
+
+{front:`ما العلامات/النتائج التي قد تحدث مع نقص الزنك عند الخدّج؟`,
+ back:`ضعف النمو، التهاب الجلد، و/أو الإسهال.`},
+
+{front:`ما جرعة/المدخول المعوي الموصى به من الزنك للخدّج؟`,
+ back:`2–3 ملغ/كغ/يوم (شاملاً ما يرد ضمن مدعّمات حليب الأم).`},
+
+{front:`لماذا يُعد الأطفال الخدّج أكثر عرضة لضعف النمو بعد الولادة وسوء التغذية؟`,
+ back:`بسبب حرمانهم من انتقال العناصر الغذائية داخل الرحم، وخاصة البروتينات والدهون والمعادن، والصعوبة الشديدة بتأمين مدخول منها يعادل مدخولها داخل الرحم.`},
+
+{front:`ما فوائد التغذية المعوية المبكرة؟`,
+ back:`تحسن التكيف الهرموني، تعزيز وظائف المناعة ونضج الأمعاء، تقليل الوقت للوصول إلى التغذية الكاملة والخروج المبكر من المستشفى دون زيادة خطر التهاب الأمعاء الناخر.`},
+
+{front:`هل وجود سائل صفراوي في المعدة وحده مانع للتغذية عند الخدّج ذوي الوزن المنخفض جداً عند الولادة؟`,
+ back:`لا، ليس مانعاً بحد ذاته ما لم توجد علامات سريرية هامة أخرى.`},
+
+{front:`هل لون وحجم رشافة المعدة يتنبآن بالتهاب الأمعاء الناخر؟`,
+ back:`أظهرت الدراسات أن لون وحجم رشافة المعدة لا يمكنهما التنبؤ بالتهاب الأمعاء الناخر.`},
+
+{front:`ما المقصود بالتغذية النمائية المعوية (Trophic feeding) وما حجمها المعتاد ومدة إعطائها قبل زيادة الحجم؟`,
+ back:`كميات قليلة من الحليب في الأيام الأولى لتحفيز نمو الجهاز الهضمي؛ نحو 15–24 مل/كغ/يوم لمدة 3 إلى 7 أيام قبل زيادة الحجم.`},
+
+{front:`ما المقصود بالتغذية المستمرة؟`,
+ back:`تسريب الحليب عبر مضخة/معدات تسريب مخصصة عبر الأنبوب الفموي/الأنفي المعدي بشكل مستمر بدلاً من وجبات.`},
+
+{front:`هل هناك دليل قاطع أن التغذية المستمرة أفضل من التغذية المتقطعة؟`,
+ back:`لا يوجد دليل قاطع على أن التغذية المستمرة أفضل من التغذية المتقطعة.`},
+
+{front:`ما المشكلة المحتملة في التغذية المستمرة المتعلقة بحليب الأم؟`,
+ back:`قد تلتصق كميات كبيرة من الدهون والمغذيات بكيس الرضاعة/المحقنة/الأنبوب وقد لا تصل للرضيع، مما قد يؤدي إلى نمو غير كافٍ.`},
+
+{front:`ما تأثير الرضاعة الطبيعية على خطر الموت المفاجئ للرضع؟`,
+ back:`ينخفض خطر الموت المفاجئ للرضع بنسبة 36% لدى الرضع الذين يتلقون الرضاعة الطبيعية لأي مدة تزيد عن شهر.`},
+
+{front:`ما فوائد إعطاء حليب الأم للرضع الخدّج في وحدة العناية المركزة لحديثي الولادة؟`,
+ back:`انخفاض عدم تحمل الرضاعة، تقليل الوقت للوصول إلى الرضاعة الكاملة، انخفاض خطر التهاب الأمعاء الناخر، وارتفاع معدل الذكاء عند سن 8 سنوات.`},
+
+{front:`خلّصت كل البطاقات… شو يعني هالشي عملياً؟`,
+ back:`يعني قطعت مرحلة كاملة: ركّزت، راجعت، وثبّتّ المفاهيم الأساسية. هلأ أنت جاهز تطبّق بثقة—والمرة الجاية رح تكون أسرع وأدق.`}
+
+];
+
+let i=0, flipped=false;
+const card=document.getElementById("card");
+const wrap=document.getElementById("wrap");
+const ft=document.getElementById("frontText");
+const bt=document.getElementById("backText");
+const pf=document.getElementById("pf");
+const pb=document.getElementById("pb");
+
+function render(){
+  ft.textContent=cards[i].front;
+  bt.textContent=cards[i].back;
+  pf.textContent=pb.textContent=`${i+1} / ${cards.length}`;
+  flipped=false;
+  card.classList.remove("is-flipped");
+}
+render();
+
+function toggleFlip(){
+  flipped=!flipped;
+  card.classList.toggle("is-flipped",flipped);
+  sound(800,0.1);
+}
+
+/* أزرار */
+prev.onclick=()=>{if(i>0){i--;render();sound(420)}};
+next.onclick=()=>{if(i<cards.length-1){i++;render();sound(520)}};
+flip.onclick=toggleFlip;
+read.onclick=()=>{
+  sound(950,0.05);
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(flipped?cards[i].back:cards[i].front);
+  u.lang='ar';
+  speechSynthesis.speak(u);
+};
+
+/* Tap = قلب / Swipe = تنقّل (مُحسّن للموبايل) */
+let sx=0, sy=0, lx=0, ly=0, tracking=false;
+
+const SWIPE_X = 55;         // عتبة السحب الأفقي (px)
+const DOMINANCE = 1.2;      // لازم يكون السحب الأفقي أوضح من العمودي
+
+function onStart(x,y){
+  sx=lx=x; sy=ly=y; tracking=true;
+}
+function onMove(x,y){
+  if(!tracking) return;
+  lx=x; ly=y;
+}
+function onEnd(x,y){
+  if(!tracking) return;
+  tracking=false;
+  const dx=(x??lx)-sx;
+  const dy=(y??ly)-sy;
+
+  // Swipe: يسار = التالي / يمين = السابق
+  if(Math.abs(dx) > SWIPE_X && Math.abs(dx) > Math.abs(dy)*DOMINANCE){
+    (dx < 0) ? next.onclick() : prev.onclick();
+    return;
+  }
+  // Tap / حركة بسيطة = قلب
+  toggleFlip();
+}
+
+/* Pointer events (الأفضل والأكثر ثباتاً) */
+wrap.addEventListener("pointerdown", (e)=>{
+  try{ wrap.setPointerCapture(e.pointerId); }catch(_){}
+  onStart(e.clientX, e.clientY);
+}, {passive:true});
+
+wrap.addEventListener("pointermove", (e)=>{ onMove(e.clientX, e.clientY); }, {passive:true});
+wrap.addEventListener("pointerup",   (e)=>{ onEnd(e.clientX, e.clientY); }, {passive:true});
+wrap.addEventListener("pointercancel",(e)=>{ onEnd(e.clientX, e.clientY); }, {passive:true});
+
+/* Touch fallback (فقط إذا ما في PointerEvent) */
+if(!("PointerEvent" in window)){
+  wrap.addEventListener("touchstart", (e)=>{
+    const t=e.changedTouches[0];
+    onStart(t.clientX, t.clientY);
+  }, {passive:true});
+
+  wrap.addEventListener("touchmove", (e)=>{
+    const t=e.changedTouches[0];
+    onMove(t.clientX, t.clientY);
+  }, {passive:true});
+
+  wrap.addEventListener("touchend", (e)=>{
+    const t=e.changedTouches[0];
+    onEnd(t.clientX, t.clientY);
+  }, {passive:true});
+
+  wrap.addEventListener("touchcancel", (e)=>{
+    const t=e.changedTouches[0];
+    onEnd(t.clientX, t.clientY);
+  }, {passive:true});
+}
+</script>
+</body>
+</html>
