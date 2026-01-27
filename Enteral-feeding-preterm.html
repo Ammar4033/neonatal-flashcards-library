@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>أساسيات تغذية حديثي الولادة: الجزء الثاني</title>
+
+<style>
+:root{
+  --card-bg:#0B2348;
+  --text-bg:#CFE8FF;
+  --text-color:#0B0F1A;
+}
+html,body{
+  margin:0;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+}
+body{
+  background:#040B18;
+  font-family: system-ui, Tahoma, Arial;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+.app{
+  width:100%;
+  max-width:820px;
+  height:100%;
+  padding:16px;
+  box-sizing:border-box;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+.card-wrap{
+  flex:1;
+  perspective:1400px;
+  touch-action: pan-y;
+}
+.card{
+  position:relative;
+  width:100%;
+  height:100%;
+  max-height:560px;
+  margin:auto;
+  background:var(--card-bg);
+  border-radius:26px;
+  transform-style:preserve-3d;
+  transition:transform .5s;
+}
+.card.is-flipped{transform:rotateY(180deg)}
+.face{
+  position:absolute;
+  inset:0;
+  padding:22px;
+  backface-visibility:hidden;
+  display:flex;
+  flex-direction:column;
+}
+.face.back{transform:rotateY(180deg)}
+.badge{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-weight:900;
+  color:white;
+  font-size:17px;
+}
+.badge-left{
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+.progress{
+  font-size:15px;
+  background:rgba(255,255,255,.12);
+  padding:6px 12px;
+  border-radius:12px;
+}
+.bubble{
+  flex:1;
+  margin-top:14px;
+  background:var(--text-bg);
+  color:var(--text-color);
+  border-radius:20px;
+  padding:28px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:right;
+}
+pre{
+  margin:0;
+  white-space:pre-wrap;
+  direction:rtl;
+  text-align:right;
+  font:inherit;
+  font-size:clamp(21px, 2.6vw, 28px);
+  line-height:1.9;
+}
+.controls{
+  display:grid;
+  grid-template-columns:1fr auto 1fr;
+  gap:12px;
+  align-items:center;
+}
+button{
+  padding:14px 18px;
+  border-radius:18px;
+  border:none;
+  background:#1a3b6e;
+  color:white;
+  font-weight:900;
+  font-size:15px;
+}
+button.center{background:#25518f}
+button.read{grid-column:1 / -1;background:#163a6b}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+<div class="card-wrap" id="wrap">
+  <div class="card" id="card">
+
+    <div class="face front">
+      <div class="badge">
+        <div class="badge-left">🧐 سؤال</div>
+        <div class="progress" id="pf"></div>
+      </div>
+      <div class="bubble"><pre id="frontText"></pre></div>
+    </div>
+
+    <div class="face back">
+      <div class="badge">
+        <div class="badge-left">🤓 جواب</div>
+        <div class="progress" id="pb"></div>
+      </div>
+      <div class="bubble"><pre id="backText"></pre></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="controls">
+  <button id="prev">⬅️ السابق</button>
+  <button id="flip" class="center">🔄 اقلب</button>
+  <button id="next">التالي ➡️</button>
+  <button id="read" class="read">🔊 اقرأ</button>
+</div>
+
+</div>
+
+<script>
+/* صوت */
+const ctx=new (window.AudioContext||window.webkitAudioContext)();
+function sound(f,d=0.08){
+  const o=ctx.createOscillator(), g=ctx.createGain();
+  o.frequency.value=f;
+  o.connect(g); g.connect(ctx.destination);
+  g.gain.value=0.05;
+  o.start(); o.stop(ctx.currentTime+d);
+}
+
+/* ===== البطاقات (افتتاحية + 18 + ختامية) ===== */
+const cards=[
+
+{front:`جاهز لجولة سريعة تثبّت فيها قرارات التغذية أهم من حفظ الأرقام؟`,
+ back:`ممتاز—اقرأ السؤال، جاوب بعقلك أولاً، وبعدها ثبّت بالجواب. كل بطاقة هون “قرار سريري” مصغّر.`},
+
+{front:`لمن يُعطى اللبأ الشدقي (في باطن الخد)؟`,
+ back:`يُعطى لجميع الولدان غير القادرين على الرضاعة الفموية.`},
+
+{front:`ما كمية وطريقة إعطاء اللبأ الشدقي داخل فم الطفل؟`,
+ back:`ضع 0.3 مل من اللبأ في الجوف الشدقي لفم الطفل (0.15 مل في كل جهة) باستخدام محقنة أو إصبع مغطاة بقفاز.`},
+
+{front:`كم مرة يُكرر إعطاء اللبأ الشدقي ومتى؟`,
+ back:`كرر الإعطاء كل 3-6 ساعات خلال الـ 48 ساعة الأولى من العمر.`},
+
+{front:`ما طريق إعطاء الوجبات المعوية حسب العمر الحملي؟`,
+ back:`الولدان الأقل من 34 أسبوعاً حملياً: التغذية بالأنبوب الفموي أو الأنفي المعدي. الولدان الأكبر من 34 أسبوعاً: التغذية عن طريق الفم حسب التقييم السريري.`},
+
+{front:`في حال وجود تهوية غير غازية بالضغط الإيجابي، كيف تُعطى التغذية عبر OGT؟`,
+ back:`يُركّب OGT بقياس مناسب مع ترك نهايته مفتوحة ومعلّقة أعلى من مستوى الطفل ليعمل كأنبوب تفريغ بين الوجبات، وتُوصل نهايته بمحقنة مع إزالة المكبس، وتوضع الوجبات بالمحقنة لتتسرب بالجاذبية.`},
+
+{front:`هل يُوصى بالشفط الروتيني للثمالة المعدية عند الأطفال الخدج؟`,
+ back:`لا يُوصى بالشفط الروتيني للثمالة المعدية عند الأطفال الخدج.`},
+
+{front:`عند وجود إقياء أو تمدد أو تغيّر لون البطن أو مضض البطن، ما الإجراء؟`,
+ back:`افحص الثمالة المعدية؛ إذا كانت الثمالة كبيرة أو مصطبغة صفراويّاً أو دموية: أوقف التغذية واطلب التقييم والمراجعة الطبية. وإذا لم تكن كذلك: استمر بالتغذية وتقدّم حسب الدليل الإرشادي.`},
+
+{front:`متى يكون حليب المتبرعات المعصور هو الخيار الثاني؟`,
+ back:`عند عدم كفاية حليب الأم، حليب المتبرعات المعصور هو الخيار الثاني بالنسبة للأطفال المولودين بعمر أقل من 32 أسبوعاً حملياً أو وزن أقل من 1500–1800 غراماً.`},
+
+{front:`متى يُستطب الحليب الاصطناعي للأطفال الخدج؟`,
+ back:`يُستطب للولدان المولودين بعمر أقل من 34 أسبوعاً حملياً أو وزن أقل من 1800 غراماً، عندما يكون حليب الأم المعصور غير كافٍ لتلبية احتياجات الطفل أو عدم توفر حليب الأم خلال 24 ساعة من الولادة.`},
+
+{front:`ما التوصية حول إعطاء الحليب بكميات أكبر من 165 مل/كغ؟`,
+ back:`من غير الضروري عادةً إعطاءه بكميات أكثر من 165 مل/كغ، ويجب البحث عن أسباب أخرى لضعف النمو قبل التفكير بإعطاء الحليب بكميات إضافية.`},
+
+{front:`لمن تُستطب مدعمات حليب الثدي (BMF) ومتى تبدأ ومتى تُوقف؟`,
+ back:`تُستطب لكل الولدان الأصغر من 34 أسبوعاً حملياً وأقل من 1800 غراماً عندما يشكّل وارد الحليب الوالدي/المتبرعة 50% أو أكثر من غذاء الطفل. ابدأ بها عند الوصول لوارد تغذية معوية 100 مل/كغ، وأوقف التدعيم عند وصول الطفل لوزن 1800 غراماً.`},
+
+{front:`ماذا يحقق إضافة 1–0.5 ملعقة قياسية (5 غرام) من بودرة الحليب المخصص للخدج إلى 90 مل حليب الأم؟`,
+ back:`ترفع محتواه من الطاقة إلى 24–22 كيلو كالوري/30 مل (81–74 كيلو كالوري/100 مل) على الترتيب.`},
+
+{front:`متى يبدأ الزنك، وما الجرعة، ومتى يُستمر به؟`,
+ back:`ابدأ به عند الوصول للتغذية الكاملة عند الخدج الأقل من 1250 غراماً. الجرعة: 2 ملغ/كغ/يوم. استمر به حتى 36 أسبوعاً حملياً مصححاً.`},
+
+{front:`كيف تُراقَب نمو الولدان المقبولين في وحدة رعاية حديثي الولادة؟`,
+ back:`من خلال مقارنة الوزن والطول ومحيط الرأس مع مخططات النمو المناسبة (Fenton, Intergrowth) مرتين أسبوعيّاً على الأقل.`},
+
+{front:`متى يبدأ إعطاء الحديد؟`,
+ back:`ابدأ به بعمر أسبوعين، في حال الطفل يرضع 100 مل/كغ/يوم على الأقل.`},
+
+{front:`ما جرعة الحديد لوزن الولادة أقل من 2.5 كغ مع الاعتماد بشكل أساسي على الرضاعة الطبيعية؟`,
+ back:`يُعطى بجرعة 4 ملغ/كغ/يوم.`},
+
+{front:`هل نوقف الحديد بعد نقل كريات الدم الحمراء المكثفة؟`,
+ back:`لا توقف الحديد بعد نقل كريات الدم الحمراء المكثفة.`},
+
+{front:`ما العمر الحملي المصحح الذي يمكن التحول عنده من التغذية عبر الأنبوب إلى التغذية الفموية؟`,
+ back:`عند التحول يجب مراعاة وصول الرضيع إلى عمر حملي مصحح بين 32 و35 أسبوعاً.`},
+
+{front:`ما أهم إشارات جاهزية الرضيع للبدء بالتغذية الفموية (cues feeding)؟`,
+ back:`فتح الفم وتحرك اللسان، منعكس الجذر (Rooting)، وضع اليد بالفم.`},
+
+{front:`ما مدة تسريب الوجبة الكاملة عبر OGT؟`,
+ back:`تُعطى الوجبة الكاملة خلال 20 دقيقة، وتُعدّل مدة الوجبات الأصغر بما يتناسب مع حجمها.`},
+
+{front:`متى يبدأ فيتامين د، وما الجرعة، ومتى يُستمر به؟`,
+ back:`ابدأ به عند بدء التقدم بالوجبات أو عند الوصول إلى حجم تغذية 100 مل/كغ/يوم، واستمر به حتى عمر 12 شهراً مصححاً. الجرعة: 400 وحدة دولية/يوم.`},
+
+{front:`ما الحالات التي لا داعي فيها لإضافة الحديد؟`,
+ back:`وزن الولادة أقل من 2.5 كغ مع الاعتماد بشكل أساسي على الرضاعة الصناعية (حليب مخصص للخدج أو تام الحمل): لا داعي لإضافة الحديد. وزن الولادة أكثر من 2.5 كغ: لا داعي لإضافة الحديد.`},
+
+{front:`ما المبدأ الأساسي لبدء التغذية المعوية للخدج بعد الولادة؟`,
+ back:`ابدأ التغذية المعوية للخدج بأقرب وقت ممكن بعد الولادة، والأفضل باستخدام حليب الأم أو حليب متبرعة.`},
+
+{front:`عند معالجة PDA بالإيبوبروفين، كيف يكون التقدم بالتغذية؟`,
+ back:`تقدم بالتغذية بشكل طبيعي حسب الدليل الإرشادي.`},
+
+{front:`في أمراض القلب الخلقية، متى نحافظ على التغذية الإنمائية (Trophic)؟`,
+ back:`تقدم بالتغذية بشكل طبيعي إلا في حالة وجود reversal flow/steal diastolic مثبتة بإيكو القلب؛ حافظ على التغذية الإنمائية (Trophic).`},
+
+{front:`لمن تُستطب مدعمات حليب الثدي (BMF)؟`,
+ back:`تُستطب لكل الولدان الأصغر من 34 أسبوعاً وأقل من 1800 غراماً.`},
+
+{front:`متى يُبدأ بمدعمات حليب الثدي (BMF)؟`,
+ back:`ابدأ به عند الوصول لوارد تغذية معوية 100 مل/كغ.`},
+
+{front:`كيف بتم تدعيم حليب الأم باستخدام بودرة حليب الخدج؟`,
+ back:`إضافة 1–0.5 ملعقة قياسية (5 غرام) من بودرة الحليب المخصص للخدج إلى 90 مل حليب الأم ترفع محتواه من الطاقة إلى 24–22 كيلو كالوري/30 مل (81–74 كيلو كالوري/100 مل) على الترتيب.`},
+
+{front:`خلّصت المجموعة… شو اللي تغيّر عندك فعلياً؟`,
+ back:`صار عندك تسلسل واضح: بدء التغذية، طريقة الإعطاء، المراقبة، والتدعيم—بدون تردد.`}
+
+];
+
+let i=0, flipped=false;
+const card=document.getElementById("card");
+const wrap=document.getElementById("wrap");
+const ft=document.getElementById("frontText");
+const bt=document.getElementById("backText");
+const pf=document.getElementById("pf");
+const pb=document.getElementById("pb");
+
+function render(){
+  ft.textContent=cards[i].front;
+  bt.textContent=cards[i].back;
+  pf.textContent=pb.textContent=`${i+1} / ${cards.length}`;
+  flipped=false;
+  card.classList.remove("is-flipped");
+}
+render();
+
+function toggleFlip(){
+  flipped=!flipped;
+  card.classList.toggle("is-flipped",flipped);
+  sound(800,0.1);
+}
+
+/* أزرار */
+prev.onclick=()=>{if(i>0){i--;render();sound(420)}};
+next.onclick=()=>{if(i<cards.length-1){i++;render();sound(520)}};
+flip.onclick=toggleFlip;
+read.onclick=()=>{
+  sound(950,0.05);
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(flipped?cards[i].back:cards[i].front);
+  u.lang='ar';
+  speechSynthesis.speak(u);
+};
+
+/* Tap = قلب / Swipe = تنقّل (مُحسّن للموبايل) */
+let sx=0, sy=0, lx=0, ly=0, tracking=false;
+
+const SWIPE_X = 55;         // عتبة السحب الأفقي (px)
+const DOMINANCE = 1.2;      // لازم يكون السحب الأفقي أوضح من العمودي
+
+function onStart(x,y){
+  sx=lx=x; sy=ly=y; tracking=true;
+}
+function onMove(x,y){
+  if(!tracking) return;
+  lx=x; ly=y;
+}
+function onEnd(x,y){
+  if(!tracking) return;
+  tracking=false;
+  const dx=(x??lx)-sx;
+  const dy=(y??ly)-sy;
+
+  // Swipe: يسار = التالي / يمين = السابق
+  if(Math.abs(dx) > SWIPE_X && Math.abs(dx) > Math.abs(dy)*DOMINANCE){
+    (dx < 0) ? next.onclick() : prev.onclick();
+    return;
+  }
+  // Tap / حركة بسيطة = قلب
+  toggleFlip();
+}
+
+/* Pointer events (الأفضل والأكثر ثباتاً) */
+wrap.addEventListener("pointerdown", (e)=>{
+  try{ wrap.setPointerCapture(e.pointerId); }catch(_){}
+  onStart(e.clientX, e.clientY);
+}, {passive:true});
+
+wrap.addEventListener("pointermove", (e)=>{ onMove(e.clientX, e.clientY); }, {passive:true});
+wrap.addEventListener("pointerup",   (e)=>{ onEnd(e.clientX, e.clientY); }, {passive:true});
+wrap.addEventListener("pointercancel",(e)=>{ onEnd(e.clientX, e.clientY); }, {passive:true});
+
+/* Touch fallback (فقط إذا ما في PointerEvent) */
+if(!("PointerEvent" in window)){
+  wrap.addEventListener("touchstart", (e)=>{
+    const t=e.changedTouches[0];
+    onStart(t.clientX, t.clientY);
+  }, {passive:true});
+
+  wrap.addEventListener("touchmove", (e)=>{
+    const t=e.changedTouches[0];
+    onMove(t.clientX, t.clientY);
+  }, {passive:true});
+
+  wrap.addEventListener("touchend", (e)=>{
+    const t=e.changedTouches[0];
+    onEnd(t.clientX, t.clientY);
+  }, {passive:true});
+
+  wrap.addEventListener("touchcancel", (e)=>{
+    const t=e.changedTouches[0];
+    onEnd(t.clientX, t.clientY);
+  }, {passive:true});
+}
+</script>
+</body>
+</html>
